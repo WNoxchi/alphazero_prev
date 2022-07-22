@@ -15,6 +15,9 @@ entries:
     - output: web,pdf
       title: Display Module
       url: display.html
+    - output: web,pdf
+      title: 'State Engine: Go'
+      url: go.html
     output: web
     title: alphazero
   output: web

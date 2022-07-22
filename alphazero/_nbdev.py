@@ -2,9 +2,33 @@
 
 __all__ = ["index", "modules", "custom_doc_links", "git_url"]
 
-index = {"plot_tree": "01_display.ipynb"}
+index = {"plot_tree": "01_display.ipynb",
+         "N": "go.ipynb",
+         "MISSING_GROUP_ID": "go.ipynb",
+         "ALL_COORDS": "go.ipynb",
+         "EMPTY_BOARD": "go.ipynb",
+         "NEIGHBORS": "go.ipynb",
+         "DIAGONALS": "go.ipynb",
+         "IllegalMove": "go.ipynb",
+         "PlayerMove": "go.ipynb",
+         "PositionWithContext": "go.ipynb",
+         "place_stones": "go.ipynb",
+         "replace_position": "go.ipynb",
+         "find_reached": "go.ipynb",
+         "is_koish": "go.ipynb",
+         "is_eyeish": "go.ipynb",
+         "Group": "go.ipynb",
+         "LibertyTracker": "go.ipynb",
+         "Position": "go.ipynb",
+         "from_flat": "go.ipynb",
+         "to_flat": "go.ipynb",
+         "from_sgf": "go.ipynb",
+         "to_sgf": "go.ipynb",
+         "from_gtp": "go.ipynb",
+         "to_gtp": "go.ipynb"}
 
-modules = ["display.py"]
+modules = ["display.py",
+           "go.py"]
 
 doc_url = "https://WNoxchi.github.io/alphazero/"
 

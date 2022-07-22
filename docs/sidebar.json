@@ -2,6 +2,7 @@
   "alphazero": {
     "Overview": "/",
     "AlphaZero Core": "core.html",
-    "Display Module": "display.html"
+    "Display Module": "display.html",
+    "State Engine: Go": "go.html"
   }
 }
