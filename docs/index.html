@@ -37,6 +37,28 @@ nb_path: "nbs/index.ipynb"
 </div>
 </div>
 </div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Before contributing changes, run the following to remove excess cell metadata:</p>
+
+<pre><code>nbdev_install_git_hooks
+nbdev_clean_nbs</code></pre>
+<p>To preview changes to documentation locally run:</p>
+
+<pre><code>nbdev_build_lib
+nbdev_build_docs
+make docs_serve</code></pre>
+<p>If you encounter a Jekyll error when building the documentation site, and see 'webrick' mentioned in the log, move to the <code>docs/</code> folder and run: <code>bundle add webrick</code>.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+
+</div>
+</div>
+</div>
 </div>
  
 
