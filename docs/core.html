@@ -1,6 +1,6 @@
 ---
 
-title: AlphaZero starter template
+title: AlphaZero Core
 
 
 keywords: fastai
@@ -31,7 +31,13 @@ nb_path: "nbs/00_core.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="MCTS">MCTS<a class="anchor-link" href="#MCTS"> </a></h1>
+<h1 id="Search-Module">Search Module<a class="anchor-link" href="#Search-Module"> </a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="MCTS">MCTS<a class="anchor-link" href="#MCTS"> </a></h2>
 </div>
 </div>
 </div>
@@ -59,7 +65,8 @@ nb_path: "nbs/00_core.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">import</span> <span class="nn">igraph</span>
+<span class="kn">import</span> <span class="nn">alphazero.display</span>
 </pre></div>
 
     </div>
@@ -88,33 +95,19 @@ nb_path: "nbs/00_core.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Overview">Overview<a class="anchor-link" href="#Overview"> </a></h2>
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
-    <span class="n">actions</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-    <span class="n">actions</span> <span class="o">/=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">actions</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">actions</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p><code>MCTree</code>: the search tree containing all nodes, queried by <code>MCTS</code>. Pruned after each turn to save space.</p>
+<p>Data Structure</p>
+<p>Search Tree</p>
+<ul>
+<li>The search tree is stored as a 1-level dictionary of index:node key:value pairs.</li>
+<li>Keys are dropped when no longer part of the active search tree.</li>
+<li>Keys are initialized &amp; point to a null value when their parent node is created.</li>
+<li>A node is created when it's key is first accessed, replacing its null value.</li>
+</ul>
+<p>Node</p>
+<ul>
+<li>dictionary containing data on a state.</li>
+<li>contains keys indexing into parent and branch nodes.</li>
+</ul>
 
 </div>
 </div>
@@ -126,50 +119,35 @@ nb_path: "nbs/00_core.ipynb"
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">class</span> <span class="nc">MCTree</span><span class="p">():</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="o">...</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p><code>MCTS</code>: search algorithm. Responsible for running simulations, selecting the next action, and maintaining the search tree.</p>
-
-</div>
-</div>
-</div>
-    {% raw %}
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">create_node</span><span class="p">(</span><span class="n">state</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                <span class="n">action_probs</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                <span class="n">valid_actions</span><span class="p">,</span>
+                <span class="n">branches</span><span class="p">,</span>
+                <span class="n">visits</span><span class="p">:</span><span class="nb">int</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">value</span><span class="p">:</span><span class="nb">float</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="n">end</span><span class="p">:</span><span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">parent_index</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">index</span><span class="p">:</span><span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
     
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;state&#39;</span><span class="p">:</span><span class="n">state</span><span class="p">,</span>
+            <span class="s1">&#39;action_probls&#39;</span><span class="p">:</span><span class="n">action_probs</span><span class="p">,</span>
+            <span class="s1">&#39;valid_actions&#39;</span><span class="p">:</span><span class="n">valid_actions</span><span class="p">,</span>
+            <span class="s1">&#39;branches&#39;</span><span class="p">:</span><span class="n">branches</span><span class="p">,</span>
+            <span class="s1">&#39;visits&#39;</span><span class="p">:</span><span class="n">visits</span><span class="p">,</span>
+            <span class="s1">&#39;value&#39;</span><span class="p">:</span><span class="n">value</span><span class="p">,</span>
+            <span class="s1">&#39;end&#39;</span><span class="p">:</span><span class="n">end</span><span class="p">,</span>
+            <span class="s1">&#39;parent_index&#39;</span><span class="p">:</span><span class="n">parent_index</span><span class="p">,</span>
+            <span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="n">index</span><span class="p">}</span>
 
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#     def __init__(self, n_sims, c_puct=1.0, noise_alpha=0.03, noise_epsilon=0.25):</span>
-<span class="c1">#         self.n_sims = n_sims</span>
-<span class="c1">#         self.c_puct = c_puct</span>
-<span class="c1">#         self.noise_alpha = noise_alpha</span>
-<span class="c1">#         self.noise_epsilon = noise_epsilon</span>
-
-
-<span class="c1">#     def simulate(self, node):</span>
-<span class="c1">#         &quot;&quot;&quot;Runs one simulation.&quot;&quot;&quot;</span>
-<span class="c1">#         action_idx = self.sim_select(node.actions)</span>
-<span class="c1">#         if node.actions[action_idx] is None:</span>
-<span class="c1">#             new_state = compute_state(action_idx, node.valid_actions)</span>
-            
-            
-
-<span class="c1">#     def sim_select(actions):</span>
-<span class="c1">#         &quot;&quot;&quot;Selects an action to simulate.&quot;&quot;&quot;</span>
-<span class="c1">#         return np.argmax(actions)</span>
+<span class="k">def</span> <span class="nf">create_random_node</span><span class="p">(</span><span class="n">state_size</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_actions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">parent_index</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">create_node</span><span class="p">(</span><span class="n">state</span><span class="o">=</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">n_actions</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">state_size</span><span class="p">,</span><span class="n">state_size</span><span class="p">)),</span>
+                       <span class="n">action_probs</span><span class="o">=</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">n_actions</span><span class="p">),</span>
+                       <span class="n">valid_actions</span><span class="o">=</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_actions</span><span class="p">),</span>
+                       <span class="n">branches</span><span class="o">=</span><span class="p">[</span><span class="n">counter</span><span class="o">+</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_actions</span><span class="p">)],</span>
+                       <span class="n">value</span><span class="o">=</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(),</span>
+                       <span class="n">end</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">parent_index</span><span class="o">=</span><span class="n">parent_index</span><span class="p">,</span>
+                       <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
 </pre></div>
 
     </div>
@@ -179,136 +157,6 @@ nb_path: "nbs/00_core.ipynb"
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h3 id="Building-the-Search-Tree">Building the Search Tree<a class="anchor-link" href="#Building-the-Search-Tree"> </a></h3>
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Creating a node</p>
-
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">create_node</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">action_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">valid_actions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">branch_nodes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="n">node</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;state&#39;</span><span class="p">:</span><span class="n">state</span><span class="p">,</span> <span class="s1">&#39;action_probs&#39;</span><span class="p">:</span><span class="n">action_probs</span><span class="p">,</span> <span class="s1">&#39;valid_actions&#39;</span><span class="p">:</span><span class="n">valid_actions</span><span class="p">,</span> <span class="s1">&#39;visits&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span><span class="n">value</span><span class="p">,</span> 
-            <span class="s1">&#39;branch_nodes&#39;</span><span class="p">:[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">action_probs</span><span class="p">),</span> <span class="s1">&#39;parent&#39;</span><span class="p">:</span><span class="n">parent</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">:</span><span class="n">index</span><span class="p">}</span>
-    <span class="k">return</span> <span class="n">node</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="k">def</span> <span class="nf">create_random_node</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,(</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
-    <span class="n">action_probs</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">valid_actions</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">value</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">create_node</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">action_probs</span><span class="p">,</span> <span class="n">valid_actions</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">,</span> <span class="n">branch_nodes</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="mi">5</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>Initializing the search tree and add a branch</p>
-
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">root</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">()</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">current_node</span> <span class="o">=</span> <span class="n">root</span>
-
-<span class="n">select_idx</span> <span class="o">=</span> <span class="mi">3</span>
-
-<span class="k">if</span> <span class="n">current_node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">current_node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">])</span>
-    <span class="n">current_node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">current_node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">])</span>
-
-<span class="k">else</span><span class="p">:</span>
-    <span class="n">current_node</span> <span class="o">=</span> <span class="n">current_node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>[None, None, None, None]
-[None, None, None, {&#39;state&#39;: array([[1, 0, 0, 0],
-       [1, 1, 0, 0],
-       [1, 1, 1, 0],
-       [1, 1, 0, 0]]), &#39;action_probs&#39;: array([0.91549324, 0.44001843, 0.56928253, 0.64673887]), &#39;valid_actions&#39;: array([1, 0, 0, 1]), &#39;visits&#39;: 1, &#39;value&#39;: 0.38382272830587105, &#39;branch_nodes&#39;: [None, None, None, None], &#39;parent&#39;: None, &#39;index&#39;: 0}]
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Random-Simulation:-create-new-nodes-on-new">Random Simulation: create new nodes on new<a class="anchor-link" href="#Random-Simulation:-create-new-nodes-on-new"> </a></h4>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -318,76 +166,75 @@ nb_path: "nbs/00_core.ipynb"
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%time</span>
 
-<span class="c1"># import igraph</span>
-
-<span class="n">sims</span> <span class="o">=</span> <span class="mi">2000</span> <span class="c1"># each sim ends by creating a new node</span>
-<span class="n">root</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">()</span>
+<span class="n">n_sims</span> <span class="o">=</span> <span class="mi">100</span>
 <span class="n">n_actions</span> <span class="o">=</span> <span class="mi">4</span>
-<span class="n">n_nodes</span><span class="o">=</span><span class="mi">0</span>
 
-<span class="c1"># graphing lib</span>
-<span class="c1"># graph = igraph.Graph()</span>
-<span class="c1"># graph.add_vertex(n_nodes)</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">counter</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># keeps track of tree&#39;s next node index (equal to total nodes added)</span>
+<span class="n">root_idx</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># keeps track of tree root (tree.root)</span>
+<span class="n">graph_vis</span> <span class="o">=</span> <span class="n">igraph</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span> <span class="c1"># used for visualization</span>
 
-<span class="n">n_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="c1"># add node (tree.add_node)</span>
+<span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">(</span><span class="n">n_actions</span><span class="o">=</span><span class="n">n_actions</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="n">counter</span><span class="p">)</span>
+<span class="n">counter</span> <span class="o">+=</span> <span class="n">n_actions</span>
+<span class="n">graph_vis</span><span class="o">.</span><span class="n">add_vertex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">graph_vis</span><span class="o">.</span><span class="n">vs</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;branches&#39;</span><span class="p">]:</span>
+    <span class="n">tree</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># graph_vis.add_vertex(i)</span>
+    <span class="c1"># graph_vis.add_edge(index, i)</span>
 
-<span class="c1"># run a simulation</span>
-<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sims</span><span class="p">):</span>
-    <span class="n">node</span> <span class="o">=</span> <span class="n">root</span>
-    <span class="n">select_idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">)</span>
-    
-    <span class="c1"># explore the search tree until new state found</span>
-    <span class="k">while</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span>
-        <span class="n">node</span><span class="p">[</span><span class="s1">&#39;visits&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="c1"># simulations (tree.simulate)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sims</span><span class="p">):</span>
+    <span class="c1"># select action</span>
+    <span class="n">select_idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;branches&#39;</span><span class="p">])</span>
+
+    <span class="c1"># repeat until new or end state reached</span>
+    <span class="k">while</span> <span class="n">tree</span><span class="p">[</span><span class="n">select_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">select_idx</span>
+        <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;visits&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># end state found</span>
+        <span class="k">if</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;end&#39;</span><span class="p">]:</span>
+            <span class="k">break</span>
+
         <span class="c1"># select next node</span>
-        <span class="n">select_idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_actions</span><span class="p">)</span>
+        <span class="n">select_idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;branches&#39;</span><span class="p">])</span>
 
-    <span class="c1"># create new node when new state found    </span>
-    <span class="c1"># graphing lib</span>
-    <span class="c1"># graph.add_vertex(n_nodes)</span>
-    <span class="c1"># graph.add_edge(node[&#39;index&#39;], n_nodes)</span>
+    <span class="c1"># create new node (tree.add_node)</span>
+    <span class="k">if</span> <span class="n">tree</span><span class="p">[</span><span class="n">select_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">select_idx</span>
+        <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">(</span><span class="n">n_actions</span><span class="o">=</span><span class="n">n_actions</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">counter</span><span class="o">=</span><span class="n">counter</span><span class="p">,</span> <span class="n">parent_index</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+        <span class="n">counter</span> <span class="o">+=</span> <span class="n">n_actions</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;branches&#39;</span><span class="p">]:</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># graph_vis.add_vertex(i)</span>
+            <span class="c1"># graph_vis.add_edge(index, i)</span>
+       
+        <span class="n">graph_vis</span><span class="o">.</span><span class="n">add_vertex</span><span class="p">(</span><span class="n">select_idx</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">select_idx</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">graph_vis</span><span class="o">.</span><span class="n">vs</span><span class="p">))</span>
+        <span class="n">graph_vis</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">select_idx</span><span class="p">)</span>
 
-    <span class="n">node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">create_random_node</span><span class="p">(</span><span class="n">parent</span><span class="o">=</span><span class="n">node</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">n_nodes</span><span class="p">)</span>
-    <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;branch_nodes&#39;</span><span class="p">][</span><span class="n">select_idx</span><span class="p">]</span>
-    <span class="n">n_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
-
-    <span class="c1"># update values of all nodes on current path</span>
-    <span class="n">parent</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;parent&#39;</span><span class="p">]</span>
-    <span class="k">while</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
-        <span class="n">node</span> <span class="o">=</span> <span class="n">parent</span>
-        <span class="n">node</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+    <span class="c1"># update path values</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+    <span class="n">visits</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;visits&#39;</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">index</span> <span class="o">!=</span> <span class="n">root_idx</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;parent_index&#39;</span><span class="p">]</span>
+        <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">value</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+    
 </pre></div>
 
     </div>
 </div>
 </div>
 
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>CPU times: user 33 ms, sys: 4.07 ms, total: 37.1 ms
-Wall time: 34.6 ms
-</pre>
-</div>
-</div>
-
-</div>
-</div>
-
 </div>
     {% endraw %}
 
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<h4 id="Visualize-Search-Tree">Visualize Search Tree<a class="anchor-link" href="#Visualize-Search-Tree"> </a></h4>
-</div>
-</div>
-</div>
     {% raw %}
     
 <div class="cell border-box-sizing code_cell rendered">
@@ -395,117 +242,10 @@ Wall time: 34.6 ms
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="o">%%time</span>
-
-<span class="kn">from</span>  <span class="nn">plotly.offline</span> <span class="kn">import</span> <span class="n">plot</span>
-<span class="kn">import</span> <span class="nn">chart_studio.plotly</span> <span class="k">as</span> <span class="nn">py</span>
-<span class="kn">import</span> <span class="nn">plotly.graph_objs</span>
-
-
-
-<span class="n">G</span> <span class="o">=</span> <span class="n">graph</span>
-<span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">vs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
-<span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-<span class="n">E</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="o">.</span><span class="n">tuple</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">G</span><span class="o">.</span><span class="n">es</span><span class="p">]</span>
-<span class="n">layt</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">layout</span><span class="p">(</span><span class="s1">&#39;tree&#39;</span><span class="p">)</span>
-
-<span class="n">Xn</span><span class="o">=</span><span class="p">[</span><span class="n">layt</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
-<span class="n">Yn</span><span class="o">=</span><span class="p">[</span><span class="n">layt</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">)]</span>
-<span class="n">Xe</span><span class="o">=</span><span class="p">[]</span>
-<span class="n">Ye</span><span class="o">=</span><span class="p">[]</span>
-<span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">E</span><span class="p">:</span>
-    <span class="n">Xe</span><span class="o">+=</span><span class="p">[</span><span class="n">layt</span><span class="p">[</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">],</span><span class="n">layt</span><span class="p">[</span><span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
-    <span class="n">Ye</span><span class="o">+=</span><span class="p">[</span><span class="n">layt</span><span class="p">[</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">1</span><span class="p">],</span><span class="n">layt</span><span class="p">[</span><span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">]][</span><span class="mi">1</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
-
-<span class="n">trace1</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">Xe</span><span class="p">,</span>
-               <span class="n">y</span><span class="o">=</span><span class="n">Ye</span><span class="p">,</span>
-               <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;lines&#39;</span><span class="p">,</span>
-               <span class="n">line</span><span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;rgb(210,210,210)&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-               <span class="n">hoverinfo</span><span class="o">=</span><span class="s1">&#39;none&#39;</span>
-               <span class="p">)</span>
-<span class="n">trace2</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">Scatter</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">Xn</span><span class="p">,</span>
-               <span class="n">y</span><span class="o">=</span><span class="n">Yn</span><span class="p">,</span>
-               <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;markers&#39;</span><span class="p">,</span>
-               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;ntw&#39;</span><span class="p">,</span>
-               <span class="n">marker</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s1">&#39;circle-dot&#39;</span><span class="p">,</span>
-                                        <span class="n">size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-                                        <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#6959CD&#39;</span><span class="p">,</span>
-                                        <span class="n">line</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;rgb(50,50,50)&#39;</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-                                        <span class="p">),</span>
-               <span class="n">text</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">hoverinfo</span><span class="o">=</span><span class="s1">&#39;text&#39;</span>
-               <span class="p">)</span>
-
-<span class="n">axis</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">showline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="c1"># hide axis line, grid, ticklabels and  title</span>
-          <span class="n">zeroline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-          <span class="n">showgrid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-          <span class="n">showticklabels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-          <span class="n">title</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
-          <span class="p">)</span>
-
-<span class="n">width</span><span class="o">=</span><span class="mi">800</span>
-<span class="n">height</span><span class="o">=</span><span class="mi">800</span>
-<span class="n">layout</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">Layout</span><span class="p">(</span><span class="n">title</span><span class="o">=</span> <span class="s2">&quot;title&quot;</span><span class="o">+</span>\
-              <span class="s2">&quot;&lt;br&gt; xyz: &lt;a href=&#39;https://tuloy.co&#39;&gt; [1]&lt;/a&gt;&quot;</span><span class="p">,</span>
-    <span class="n">font</span><span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">12</span><span class="p">),</span>
-    <span class="n">showlegend</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">autosize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span>
-    <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span>
-    <span class="n">xaxis</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">XAxis</span><span class="p">(</span><span class="n">axis</span><span class="p">),</span>
-    <span class="n">yaxis</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">YAxis</span><span class="p">(</span><span class="n">axis</span><span class="p">),</span>
-    <span class="n">margin</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">layout</span><span class="o">.</span><span class="n">Margin</span><span class="p">(</span>
-        <span class="n">l</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
-        <span class="n">r</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
-        <span class="n">b</span><span class="o">=</span><span class="mi">85</span><span class="p">,</span>
-        <span class="n">t</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-    <span class="p">),</span>
-    <span class="n">hovermode</span><span class="o">=</span><span class="s1">&#39;closest&#39;</span><span class="p">,</span>
-    <span class="n">annotations</span><span class="o">=</span><span class="p">[</span>
-           <span class="nb">dict</span><span class="p">(</span>
-           <span class="n">showarrow</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">text</span><span class="o">=</span><span class="s1">&#39;igraph.Graph&#39;</span><span class="p">,</span>
-            <span class="n">xref</span><span class="o">=</span><span class="s1">&#39;paper&#39;</span><span class="p">,</span>
-            <span class="n">yref</span><span class="o">=</span><span class="s1">&#39;paper&#39;</span><span class="p">,</span>
-            <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">y</span><span class="o">=-</span><span class="mf">0.1</span><span class="p">,</span>
-            <span class="n">xanchor</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span>
-            <span class="n">yanchor</span><span class="o">=</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span>
-            <span class="n">font</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
-            <span class="n">size</span><span class="o">=</span><span class="mi">14</span>
-            <span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-
-<span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">trace1</span><span class="p">,</span> <span class="n">trace2</span><span class="p">]</span>
-<span class="n">fig</span><span class="o">=</span><span class="n">plotly</span><span class="o">.</span><span class="n">graph_objs</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">)</span>
-<span class="n">plotly</span><span class="o">.</span><span class="n">offline</span><span class="o">.</span><span class="n">iplot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;igraph-network&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span> 
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-
-</div>
-
-<div class="output_area">
-
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>CPU times: user 220 ms, sys: 61.1 ms, total: 281 ms
-Wall time: 322 ms
-</pre>
-</div>
-</div>
-
 </div>
 </div>
 
@@ -578,22 +318,6 @@ explore(s,a) = c_puct * action_probabilities(s,a) * sqrt(visit_count(previous_no
 </pre></div>
 
     </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-
-<div class="output_text output_subarea output_execute_result">
-<pre>(array([9.98888057e-01, 1.11194276e-03, 7.99958888e-17]), 3)</pre>
-</div>
-
-</div>
-
 </div>
 </div>
 

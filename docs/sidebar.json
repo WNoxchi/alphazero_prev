@@ -1,6 +1,7 @@
 {
   "alphazero": {
     "Overview": "/",
-    "AlphaZero starter template": "core.html"
+    "AlphaZero Core": "core.html",
+    "Display Module": "display.html"
   }
 }

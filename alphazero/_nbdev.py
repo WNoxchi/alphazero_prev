@@ -2,9 +2,9 @@
 
 __all__ = ["index", "modules", "custom_doc_links", "git_url"]
 
-index = {}
+index = {"plot_tree": "01_display.ipynb"}
 
-modules = []
+modules = ["display.py"]
 
 doc_url = "https://WNoxchi.github.io/alphazero/"
 

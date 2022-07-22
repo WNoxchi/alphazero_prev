@@ -10,8 +10,11 @@ entries:
       title: Overview
       url: /
     - output: web,pdf
-      title: AlphaZero starter template
+      title: AlphaZero Core
       url: core.html
+    - output: web,pdf
+      title: Display Module
+      url: display.html
     output: web
     title: alphazero
   output: web
