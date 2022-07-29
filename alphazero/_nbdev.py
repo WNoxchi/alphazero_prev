@@ -2,7 +2,7 @@
 
 __all__ = ["index", "modules", "custom_doc_links", "git_url"]
 
-index = {"plot_tree": "01_display.ipynb",
+index = {"plot_tree": "display.ipynb",
          "N": "go.ipynb",
          "MISSING_GROUP_ID": "go.ipynb",
          "ALL_COORDS": "go.ipynb",
@@ -25,10 +25,18 @@ index = {"plot_tree": "01_display.ipynb",
          "from_sgf": "go.ipynb",
          "to_sgf": "go.ipynb",
          "from_gtp": "go.ipynb",
-         "to_gtp": "go.ipynb"}
+         "to_gtp": "go.ipynb",
+         "MCTSNode": "search.ipynb",
+         "rng": "search.ipynb",
+         "state_size": "search.ipynb",
+         "n_actions": "search.ipynb",
+         "n_sims": "search.ipynb",
+         "root_idx": "search.ipynb",
+         "tree": "search.ipynb"}
 
 modules = ["display.py",
-           "go.py"]
+           "go.py",
+           "search.py"]
 
 doc_url = "https://WNoxchi.github.io/alphazero/"
 

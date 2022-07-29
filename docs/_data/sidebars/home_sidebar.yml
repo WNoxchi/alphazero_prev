@@ -18,6 +18,9 @@ entries:
     - output: web,pdf
       title: 'State Engine: Go'
       url: go.html
+    - output: web,pdf
+      title: Search Module
+      url: search.html
     output: web
     title: alphazero
   output: web

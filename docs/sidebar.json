@@ -3,6 +3,7 @@
     "Overview": "/",
     "AlphaZero Core": "core.html",
     "Display Module": "display.html",
-    "State Engine: Go": "go.html"
+    "State Engine: Go": "go.html",
+    "Search Module": "search.html"
   }
 }
